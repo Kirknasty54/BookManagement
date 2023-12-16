@@ -7,7 +7,7 @@ class User:
         self.__role = role
         self.__borrowed_books = borrowed_books
 
-    #hashes the password making it more secure
+    #hashes the password using sha256 making it more secure
     @staticmethod
     def hash_password(password):
         hashed_password = sha256(password.encode()).hexdigest()
@@ -20,5 +20,6 @@ class User:
     #simply returns the role of the user to know if we should create the member main screen or the librianian main screen
     def get_role(self): return self.__role
 
+    #this is a member only screen/function
     def borrow_book(self):
         pass
