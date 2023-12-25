@@ -1,7 +1,10 @@
 import sqlite3
-from PIL import Image
+import tkinter
+import webbrowser
+from PIL import Image, ImageTk
 import book as book
 import user as user
+from tkinter import PhotoImage
 import os
 import customtkinter as ctk
 from user import User
@@ -12,7 +15,11 @@ ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
 app = ctk.CTk()
 app.title('The Library of Kirkandria')
-app.geometry("500x350")
+app.after(0, lambda : app.state('zoomed'))
+icon = PhotoImage(file=os.path.join('..', 'images', 'icon.png'))
+app.wm_iconbitmap()
+app.iconphoto(False, icon)
+
 
 #this handles most of the logic of the overall app
 class LibrarySystem:
@@ -53,8 +60,10 @@ class LibrarySystem:
                 return -1
 
     #kicks the user out of their current frame and boots them back to the log in frame
-    def logout(self):
-        pass
+    @staticmethod
+    def logout(screen):
+        screen.destroy()
+        LibrarySystem.loginScreen()
 
     #a search feature of available books, generes, authors, etc, etc.
     def search_books(self, title, author):
@@ -67,22 +76,22 @@ class LibrarySystem:
     #registers the account based on the username and password entered
     @staticmethod
     def register_user(username, password):
-        user_exists = True
-        with sqlite3.connect('user_accounts.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT username FROM user_table WHERE username = ?", (username,))
-            existing = cursor.fetchone()
-            if not existing:
-                user_exists = False
-
-        if user_exists:
-            ctkm(title='Registration Error', message='A username by that name already exists, try fixing your password', icon='warning', option_1='Close')
-        else:
+        if username != '' and password != '':
+            user_exists = True
             with sqlite3.connect('user_accounts.db') as conn:
                 cursor = conn.cursor()
-                cursor.execute("insert into user_table(username, password, role, books_borrowed) VALUES(?, ?, 'Member', 'None')", (username, User.hash_password(password)))
-                conn.commit()
-            ctkm(title='Registration Success', message='Account successfully registered', icon='check', option_1='Close')
+                cursor.execute("SELECT username FROM user_table WHERE username = ?", (username,))
+                existing = cursor.fetchone()
+                if not existing: user_exists = False
+
+            if user_exists: ctkm(title='Registration Error', message='A username by that name already exists, try fixing your password', icon='warning', option_1='Close')
+            else:
+                with sqlite3.connect('user_accounts.db') as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("insert into user_table(username, password, role, books_borrowed) VALUES(?, ?, 'Member', 'None')", (username, User.hash_password(password)))
+                    conn.commit()
+                ctkm(title='Registration Success', message='Account successfully registered', icon='check', option_1='Close')
+        else: ctkm(title='No Entry Found', message='Please enter in a username and password to register an account', icon='warning', option_1='Close')
 
     def borrow_book(self, username, book_id):
         pass
@@ -106,8 +115,7 @@ class LibrarySystem:
                                   borrowed_books=['books_borrowed'])
                 if(loggedUser.get_role() == 'Member'):LibrarySystem.mainmenu_MemberScreen()
 
-        log_in_image = os.path.abspath(os.path.join('..', 'images', 'logingimage.jpg'))
-        img = ctk.CTkImage(dark_image=Image.open(log_in_image), size=(400, 350))
+        img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('logingimage.jpg')), size=(400, 350))
         bg_label = ctk.CTkLabel(app, image=img, text='')
         bg_label.place(relwidth=1, relheight=1)
 
@@ -119,27 +127,17 @@ class LibrarySystem:
         passwordEntry = ctk.CTkEntry(master=app, show='*', placeholder_text='Password')
         passwordEntry.place(relx=0.5, rely=0.4, anchor='center')
 
-        loginButton = ctk.CTkButton(master=app, text='Login',command=lambda: on_login_clicked(usernameEntry.get(), passwordEntry.get()), corner_radius=32).place(relx=0.5, rely=0.5, anchor='center')
-        registerButton = ctk.CTkButton(master=app, text='Register',command=lambda: LibrarySystem.register_user(usernameEntry.get(), passwordEntry.get()), corner_radius=32).place(relx=0.5, rely=0.6, anchor='center')
+        loginBtn = ctk.CTkButton(master=app, text='Login',command=lambda: on_login_clicked(usernameEntry.get(), passwordEntry.get()), corner_radius=32).place(relx=0.5, rely=0.5, anchor='center')
+        registerBtn = ctk.CTkButton(master=app, text='Register',command=lambda: LibrarySystem.register_user(usernameEntry.get(), passwordEntry.get()), corner_radius=32).place(relx=0.5, rely=0.6, anchor='center')
+        gitHubBtn = ctk.CTkButton(master=app, text='GitHub', command=lambda : webbrowser.open_new('https://github.com/Kirknasty54'), width=10, height=10).place(relx=0.0, rely=0.0)
+        #websiteBtn = ctk.CTkButton(master=app, text='Website', command=lambda : webbrowser.open_new(''),width=10, height=10).place(relx=0.0, rely=0.1)
+
         def onResize(event):
             new_size = (app.winfo_width(), app.winfo_height())
             img.configure(size=new_size)
 
         app.bind('<Configure>', onResize)
         app.mainloop()
-
-
-    #use this function to make the retrival of images for the app much shorter and easeier so i dont have to write this code out a million times and loose my mind
-    @staticmethod
-    def get_img(img_path):
-        #check if the image file exists
-        if os.path.exists(img_path):
-            #load the image using CTkImage
-            img = ctk.CTkImage(dark_image=Image.open(img_path))
-            return img
-        #this is just here for debugging, might keep this in but idk, bc there's no way it shouldnt find the image, in theory, hopefully, please
-        else:
-            print(f"Image file not found: {img_path}")
 
     @staticmethod
     def get_curr_user(username, password):
@@ -165,14 +163,12 @@ class LibrarySystem:
         label=ctk.CTkLabel(master=main_menu_frame, text='Main Menu\nWelcome Member')
         label.pack(pady=12, padx=10)
         search_bookBtn = ctk.CTkButton(master=main_menu_frame, text='Search for Books', command= lambda : onSearchClicked(), corner_radius=32).pack(pady=12, padx=10)
-        borrow_book_Btn = ctk.CTkButton(master=main_menu_frame, text='Borrow Books', command= lambda : onBorrowClicked, corner_radius=32).pack(pady=12, padx=10)
-        return_book_Btn = ctk.CTkButton(main_menu_frame, text='Return Books', command= lambda : onReturnClicked, corner_radius=32).pack(pady=12, padx=10)
+        return_book_Btn = ctk.CTkButton(main_menu_frame, text='Return Books', command= lambda : onReturnClicked(), corner_radius=32).pack(pady=12, padx=10)
+        logout_Btn = ctk.CTkButton(main_menu_frame, text='Logout', command= lambda: LibrarySystem.logout(main_menu_frame), corner_radius=32).pack(pady=12, padx=10)
+
         def onSearchClicked():
             main_menu_frame.destroy()
             LibrarySystem.searchScreen()
-        def onBorrowClicked():
-            main_menu_frame.destroy()
-            LibrarySystem.borrowBookScreen()
 
         def onReturnClicked():
             main_menu_frame.destroy()
@@ -188,22 +184,59 @@ class LibrarySystem:
     def removeBookScreen():
         pass
 
-    #this will be a member only method/screen
-    @staticmethod
-    def borrowBookScreen():
-        pass
-
     @staticmethod
     def returnBookScreen():
         pass
 
-    # this will be a member only method/screen
-    @staticmethod
-    def registerScreen():
-        pass
-
     #this will allow users to search the through the database of available books
     #have a progress bar to represent search progress
+    #search screen will have a search bar to search by author, title, or isbn
     @staticmethod
     def searchScreen():
-        pass
+
+        search_screen_frame = ctk.CTkFrame(master=app, width=app._current_width/2, height=app._current_height/2).pack(pady= 20, padx=60, fill='both', expand=True)
+        searchEntry = ctk.CTkEntry(master=search_screen_frame, placeholder_text='Enter title, author, or ISBN number to find books', width=280)
+        #searchEntry.bind("<Return>")
+        searchEntry.place(relx=0.5, rely=0.2, anchor='center')
+
+        searchImg = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('search_img.jpg')), size=(24, 24))
+        searchBtn = ctk.CTkLabel(search_screen_frame, image=searchImg, text='')
+        bookImg = ctk.CTkLabel(search_screen_frame, text='this is here').place(relx= 0.45, rely = 0.7)
+        #this searching through the database and 'returns' all titles associated with that piece of text
+        #this text can be authors, title, or the isbn13
+        def onSearchBtnClicked(event):
+            print('this function was called')
+            if searchEntry:
+                search_text = searchEntry.get()
+                with sqlite3.connect('book_list.db') as conn:
+                    cursor = conn.cursor()
+                    query = "SELECT * FROM book_registery WHERE LOWER(title) LIKE LOWER(?) OR LOWER(authors) LIKE ? OR isbn13 LIKE LOWER(?)"
+                    params = (f"%{search_text}%", f"%{search_text}%", f"%{search_text}%")
+                    cursor.execute(query, params)
+                    rows = cursor.fetchall()
+                    for row in rows:
+                        print(row)
+                        #here we have the current book selected as the first book in the list, duh
+                        #i'm wanting to have the book cover of each book displayed and clickable to see more info on it
+                        #also having some left and right arrow 'buttons' to travel through the collection of books
+                        i = 0
+                        curr_book = row[i]
+                        #if left button is clicked, we go one to the left of the current book
+                        #i-=1
+                        #curr_book = row[i]
+
+                        #if right button is clicked, we go one to the right of the current book
+                        #i+=1
+                        #curr_book = row[i]
+
+        searchBtn.bind('<Button-1>', onSearchBtnClicked)
+        searchBtn.place(relx=0.6, rely=0.2, anchor='center')
+
+        #leftArrowBtn = ctk.CTkLabel()
+        #rightArrowBtn = ctk.CTkLabel()
+
+    #this is a simple method to just ease up the getting of images from images folder
+    @staticmethod
+    def getImg(file):
+        img = os.path.join('..', 'images', fr'{file}')
+        return img
