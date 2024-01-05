@@ -59,4 +59,6 @@ def main():
     #    cursor.execute('update book_registery set desc = ? where isbn13 = ?', (desc, isbn13))
     #    conn2.commit()
     #conn2.commit()
+    #cursor.execute("DELETE from book_registery where desc is NULL or trim(desc)=''")
+    #conn2.commit()
 main()

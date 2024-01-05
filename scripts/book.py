@@ -3,7 +3,6 @@ from io import BytesIO
 from urllib.request import urlopen
 import requests
 from PIL import Image, ImageTk
-from urlLabel import CTkUrlLabel
 
 class Book:
     def __init__(self, book_id, title, author, quantity):
@@ -16,15 +15,18 @@ class Book:
         self.__quantity += change
 
     @staticmethod
-    def getImgUrl(frame, isbn):
+    def getImgUrl(isbn):
         api = "https://www.googleapis.com/books/v1/volumes?q=isbn:"
-        #9780767910439
         response = urlopen(api+isbn)
         book_info = json.load(response)
         if 'items' in book_info:
             vol_info = book_info['items'][0]['volumeInfo']
-            book_cover = CTkUrlLabel(master=frame, text='this is here')
             if 'imageLinks' in vol_info:
-                book_cover.configure(url=vol_info['imageLinks']['thumbnail'])
-                print(f"big pic: {vol_info['imageLinks']['thumbnail']}")
-                return book_cover
+                if 'thumbnail' in vol_info['imageLinks']:
+                    url = vol_info['imageLinks']['thumbnail']
+                    return url
+                else:
+                    return vol_info['imageLinks']['smallThumbnail']
+        else:
+            url = 'https://t3.ftcdn.net/jpg/02/16/67/50/360_F_216675048_39petQYPtJ9cv5ycUg1LOmCtcNCoqtdk.jpg'
+            return url

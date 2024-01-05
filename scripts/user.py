@@ -30,6 +30,7 @@ class User:
     def getCurrUser(username, password):
         with sqlite3.connect('user_accounts.db') as conn:
             cursor = conn.cursor()
+            #i dont think i need to worry about sql injections with this implementation, but im not really sure
             cursor.execute('SELECT * FROM user_table WHERE username=? AND password=?',
                            (username, User.hashPassword(password)))
             result = cursor.fetchone()
@@ -65,8 +66,7 @@ class User:
                 result = cursor.fetchone()
             if result:
                 if User.checkPassword(result[0], password):
-                    print('logged in successfully ')
-                    # this will return if the user can sucessfully log in
+                    #this will return if the user can sucessfully log in
                     return 0
                 # if a username is found but incorrect password, alert user and have them try again
                 else:
