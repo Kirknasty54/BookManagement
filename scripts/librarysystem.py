@@ -1,3 +1,4 @@
+import pickle
 import requests
 from threading import Thread
 import sqlite3
@@ -113,8 +114,7 @@ class LibrarySystem:
         pass
 
     #this will allow users to search the through the database of available books
-    #have a progress bar to represent search progress
-    #search screen will have a search bar to search by author, title, or isbn
+    #might have a progress bar to represent search progress
     @staticmethod
     def searchScreen():
         search_frame = ctk.CTkFrame(master=app)
@@ -131,19 +131,25 @@ class LibrarySystem:
         book_cover = CTkUrlLabel(master=search_frame)
         book_desc = ctk.CTkLabel(master=search_frame)
         back_arrow = ctk.CTkButton(master=search_frame, image=left_img, fg_color='transparent',
-                                   hover=False, text='', command = lambda : onBackArrowBtnClicked(), width=10, height=10)
-        back_arrow.place(relx=0.0, rely=0.0)
+                                   hover=False, text='', command = lambda : onBackArrowBtnClicked(0), width=10, height=10)
+        back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
 
-        #returns to the main menu screen
-        def onBackArrowBtnClicked():
-            for child in list(app.children.values()): child.destroy()
-            LibrarySystem.mainMenuMemberScreen()
+        #returns to the appropiate screen based on the case based into the function
+        #want to return to search screen if were hitting the back arrow on the book screen, and thenn return to the main menu screen if we press search screen back arrow
+        def onBackArrowBtnClicked(case):
+            match case:
+                case 0:
+                    for child in list(app.children.values()): child.destroy()
+                    LibrarySystem.mainMenuMemberScreen()
+                case 1:
+                    for child in list(app.children.values()): child.destroy()
+                    LibrarySystem.searchScreen()
 
-        #this searching through the database and 'returns' all titles associated with that piece of text
+        #this searches through the database and 'returns' all titles associated with that piece of text
         #this text can be authors, title, or the isbn13
         idx=0
+        books_found = []
         def onSearchBtnClicked():
-
             def search():
                 if search_entry.get():
                     search_text = search_entry.get()
@@ -169,6 +175,7 @@ class LibrarySystem:
             #use threading to help prevent gui lag
             Thread(target=search).start()
 
+        #this moves to the right and if we reach the end of the list, simply reset to the beginning to avoid any list range error bs
         def rightBtnClicked(books_found, book_cover, book_desc):
             nonlocal idx
             idx += 1
@@ -177,6 +184,7 @@ class LibrarySystem:
             book_cover.configure(url=Book.getImgUrl(books_found[idx][6]))
             book_desc.configure(text=books_found[idx][5][0:50]+'\n'+books_found[idx][5][50:100])
 
+        #this moves to the left and if we reach the 'left-most' point of the list, we simply move to the beginning of the list
         def leftBtnClicked(books_found, book_cover, book_desc):
             nonlocal idx
             idx -= 1
@@ -185,25 +193,26 @@ class LibrarySystem:
             book_cover.configure(url=Book.getImgUrl(books_found[idx][6]))
             book_desc.configure(text=books_found[idx][5][0:50]+'\n'+books_found[idx][5][50:100])
 
+        #this takes the user to a main page for the book they clicked on, has some more info about the book like the author, publisher, publication date
+        #also gives the user the option to borrow if they are a member and not a librarian
+        #will let the user know if there are no more copies of the book available
+        #if no copies available then prevent user from attempting to borrow book
         def onBookClicked(event):
-            #search_frame = ctk.CTkFrame(master=app)
-            #search_frame.pack(pady=20, padx=60, fill='both', expand=True)
-            for child in list(app.children.values()):
-                if isinstance(child, CTkUrlLabel):
-                    child.pack_forget()
-                child.destroy()
-            if book_cover.winfo_exists():print('exists')
+            for child in list(app.children.values()): child.destroy()
             book_frame = ctk.CTkFrame(master=app, width = 750, height = 800)
             book_frame.pack(pady=20, padx=60)
             back_arrow = ctk.CTkButton(master=book_frame, image=left_img, fg_color='transparent',
-                                       hover=False, text='', command=lambda: onBackArrowBtnClicked(), width=10,
+                                       hover=False, text='', command=lambda: onBackArrowBtnClicked(1), width=10,
                                        height=10)
-            back_arrow.place(relx=0.0, rely=0.0)
-            #book_cover.configure(master=book_frame)
-            #book_cover.pack(side=ctk.LEFT)
-
+            back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
+            #book_cover.configure(url=Book.getImgUrl(books_found[0][6]), text='', cursor="hand2",
+            #                     url_image_size=(300, 300))
+            book_cover = CTkUrlLabel(master=book_frame, url=books_found[idx][6], text='', url_image_size=(450, 450))
+            book_cover.pack(anchor='center', side=ctk.LEFT)
 
     #this is a simple method to just ease up the getting of images from images folder
+    #could have downloaded all book cover images from google api, might be slightly faster to display image, but i really dont want this to take up that much space
+    #also just like my current method a lot better
     @staticmethod
     def getImg(file):
         img = os.path.join('..', 'images', fr'{file}')

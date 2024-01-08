@@ -1,8 +1,5 @@
 import json
-from io import BytesIO
 from urllib.request import urlopen
-import requests
-from PIL import Image, ImageTk
 
 class Book:
     def __init__(self, book_id, title, author, quantity):
