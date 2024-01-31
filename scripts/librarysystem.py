@@ -168,8 +168,9 @@ class LibrarySystem:
                                                      text='', fg_color="transparent", width=10, height=20).place(x=search_frame._current_width/2 -190, y=search_frame._current_height/2 -60)
                             book_desc.configure(text=books_found[0][5][0:50]+'\n'+books_found[0][5][50:100])
                             book_desc.place(x=search_frame._current_width/2-150, y = search_frame._current_height/2+125)
+
                         else: ctkm(title='No Such Book Found', message='Looks like we don\'t have any matching books. Try again or let a librarian know.',
-                                icon='/warning', option_1='Close')
+                                icon='warning', option_1='Close')
                 else:ctkm(title='Enter Something', message='Looks like you forgot to enter in anything',
                           icon='warning', option_1='Close')
             #use threading to help prevent gui lag
@@ -198,17 +199,16 @@ class LibrarySystem:
         #will let the user know if there are no more copies of the book available
         #if no copies available then prevent user from attempting to borrow book
         def onBookClicked(event):
+            nonlocal idx
             for child in list(app.children.values()): child.destroy()
-            book_frame = ctk.CTkFrame(master=app, width = 750, height = 800)
-            book_frame.pack(pady=20, padx=60)
+            book_frame = ctk.CTkFrame(master=app)
+            book_frame.pack(pady=20, padx=60, fill='both', expand=True)
             back_arrow = ctk.CTkButton(master=book_frame, image=left_img, fg_color='transparent',
                                        hover=False, text='', command=lambda: onBackArrowBtnClicked(1), width=10,
                                        height=10)
             back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
             #book_cover.configure(url=Book.getImgUrl(books_found[0][6]), text='', cursor="hand2",
             #                     url_image_size=(300, 300))
-            book_cover = CTkUrlLabel(master=book_frame, url=books_found[idx][6], text='', url_image_size=(450, 450))
-            book_cover.pack(anchor='center', side=ctk.LEFT)
 
     #this is a simple method to just ease up the getting of images from images folder
     #could have downloaded all book cover images from google api, might be slightly faster to display image, but i really dont want this to take up that much space
