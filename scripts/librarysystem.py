@@ -12,6 +12,7 @@ import customtkinter as ctk
 from user import User
 from CTkMessagebox import CTkMessagebox as ctkm
 from urlLabel import CTkUrlLabel
+from textwrap import wrap
 
 # set our colors/modes, title of the application and default size on launch
 ctk.set_appearance_mode("Dark")
@@ -23,18 +24,10 @@ app.after(0, lambda : app.state('zoomed'))
 icon = PhotoImage(file=os.path.join('..', 'images', 'icon.png'))
 app.wm_iconbitmap()
 app.iconphoto(False, icon)
+u_id = 0
+
 #this handles most of the logic of the overall app, split some of the functions to the classes i found appropriate
 class LibrarySystem:
-
-    #this removes a book from the inventory, could be either from borrowing, or librianan removing book from inventory
-    def remove_book(self, book_id):
-         pass
-
-    def borrow_book(self, username, book_id):
-        pass
-
-    def return_book(self, username, book_id):
-        pass
 
     #this is the first screen that appears upon startup and handles the log in logic
     #depending on the log in entered, the user will either go to the member main menu screen or the librianian main menu screen, both screens have some differing options and some of the same
@@ -46,11 +39,15 @@ class LibrarySystem:
                 app.unbind('<Configure>')
                 for child in list(app.children.values()): child.destroy()
                 curr_user = User.getCurrUser(username, password)
+
                 logged_user = User(username=curr_user['username'],
                                   password=curr_user['password'],
                                   role=curr_user['role'],
-                                  borrowed_books=['books_borrowed'])
+                                  borrowed_books=['books_borrowed'],
+                                  id =['id'])
                 if(logged_user.get_role() == 'Member'):LibrarySystem.mainMenuMemberScreen()
+                global u_id
+                u_id = logged_user.get_curr_id(username, password)
 
         img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('logingimage.jpg')), size=(400, 350))
         bg_label = ctk.CTkLabel(app, image=img, text='')
@@ -64,8 +61,9 @@ class LibrarySystem:
         username_entry.place(x=login_frame._current_width/2 -70, y =110)
         password_entry = ctk.CTkEntry(master=login_frame, show='*', placeholder_text='Password')
         password_entry.place(x=login_frame._current_width/2 -70, y =165)
-        forgot_password_link = ctk.CTkLabel(master=login_frame, text='Forgot Password?')
-        forgot_password_link.place(x=login_frame._current_width/2 -50, y =200)
+        '''forgot_password_link = ctk.CTkLabel(master=login_frame, text='Forgot Password?', cursor='hand2', text_color='blue', font=ctk.CTkFont())
+        forgot_password_link.bind("<Button-1>", )
+        forgot_password_link.place(x=login_frame._current_width/2 -50, y =200)'''
 
         login_btn = ctk.CTkButton(master=login_frame, text='Login',command=lambda: onLoginClicked(username_entry.get(), password_entry.get())).place(x=login_frame._current_width/2 -70, y =240)
         register_btn = ctk.CTkButton(master=login_frame, text='Register',command=lambda: User.registerUser(username_entry.get(), password_entry.get())).place(x=login_frame._current_width/2 -70, y =290)
@@ -79,13 +77,24 @@ class LibrarySystem:
         app.bind('<Configure>', onResize)
         app.mainloop()
 
+    # returns to the appropiate screen based on the case based into the function
+    # want to return to search screen if were hitting the back arrow on the book screen, and thenn return to the main menu screen if we press search screen back arrow
+    def onBackArrowBtnClicked(case):
+        match case:
+            case 0:
+                for child in list(app.children.values()): child.destroy()
+                LibrarySystem.mainMenuMemberScreen()
+            case 1:
+                for child in list(app.children.values()): child.destroy()
+                LibrarySystem.searchScreen()
+
     #this is the main menu screen for members only, gives them a variety of options like searching for books, borrowing books, returning books, and log out
     #might eventually add a recommendation system based on previously borrowed books
     @staticmethod
     def mainMenuMemberScreen():
         main_menu_frame = ctk.CTkFrame(master=app)
         main_menu_frame.pack(pady=20, padx=60, fill='both', expand=True)
-        label = ctk.CTkLabel(master=main_menu_frame, text='Main Menu\nWelcome Member')
+        label = ctk.CTkLabel(master=main_menu_frame, text='Main Menu\nWelcome Member', font=(None, 35))
         label.pack(pady=12, padx=10)
         search_book_btn = ctk.CTkButton(master=main_menu_frame, text='Search for Books', command= lambda : onSearchClicked(), corner_radius=32).pack(pady=12, padx=10)
         return_book_btn = ctk.CTkButton(main_menu_frame, text='Return Books', command= lambda : onReturnClicked(), corner_radius=32).pack(pady=12, padx=10)
@@ -99,19 +108,18 @@ class LibrarySystem:
             main_menu_frame.destroy()
             LibrarySystem.returnBookScreen()
 
-    #this will be a librianian only method/screen
-    @staticmethod
-    def addBookScreen():
-        pass
-
-    # this will be a librarian only method/screen
-    @staticmethod
-    def removeBookScreen():
-        pass
-
     @staticmethod
     def returnBookScreen():
-        pass
+        return_frame = ctk.CTkFrame(master=app)
+        left_img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('left_arrow.png')), size=(25, 25))
+        label = ctk.CTkLabel(master=return_frame, text='Return Menu', font=(None, 35))
+
+        return_frame.pack(pady=20, padx=60, fill='both', expand=True)
+        back_arrow = ctk.CTkButton(master=return_frame, image=left_img, fg_color='transparent',
+                                   hover=False, text='', command=lambda: LibrarySystem.onBackArrowBtnClicked(0), width=10, height=10)
+        back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
+        label.pack(anchor=ctk.CENTER, side=ctk.TOP)
+
 
     #this will allow users to search the through the database of available books
     #might have a progress bar to represent search progress
@@ -131,19 +139,9 @@ class LibrarySystem:
         book_cover = CTkUrlLabel(master=search_frame)
         book_desc = ctk.CTkLabel(master=search_frame)
         back_arrow = ctk.CTkButton(master=search_frame, image=left_img, fg_color='transparent',
-                                   hover=False, text='', command = lambda : onBackArrowBtnClicked(0), width=10, height=10)
+                                   hover=False, text='', command = lambda : LibrarySystem.onBackArrowBtnClicked(0), width=10, height=10)
         back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
 
-        #returns to the appropiate screen based on the case based into the function
-        #want to return to search screen if were hitting the back arrow on the book screen, and thenn return to the main menu screen if we press search screen back arrow
-        def onBackArrowBtnClicked(case):
-            match case:
-                case 0:
-                    for child in list(app.children.values()): child.destroy()
-                    LibrarySystem.mainMenuMemberScreen()
-                case 1:
-                    for child in list(app.children.values()): child.destroy()
-                    LibrarySystem.searchScreen()
 
         #this searches through the database and 'returns' all titles associated with that piece of text
         #this text can be authors, title, or the isbn13
@@ -157,6 +155,7 @@ class LibrarySystem:
                         cursor = conn.cursor()
                         sql_query = f"SELECT * FROM book_registery WHERE title LIKE '%{search_text}%' OR authors LIKE '%{search_text}%' OR isbn13 LIKE '%{search_text}%'"
                         cursor.execute(sql_query)
+                        nonlocal books_found
                         books_found = cursor.fetchall()
                         if books_found:
                             book_cover.configure(url=Book.getImgUrl(books_found[0][6]), text='', cursor="hand2", url_image_size=(300, 300))
@@ -199,16 +198,81 @@ class LibrarySystem:
         #will let the user know if there are no more copies of the book available
         #if no copies available then prevent user from attempting to borrow book
         def onBookClicked(event):
-            nonlocal idx
             for child in list(app.children.values()): child.destroy()
             book_frame = ctk.CTkFrame(master=app)
             book_frame.pack(pady=20, padx=60, fill='both', expand=True)
             back_arrow = ctk.CTkButton(master=book_frame, image=left_img, fg_color='transparent',
-                                       hover=False, text='', command=lambda: onBackArrowBtnClicked(1), width=10,
+                                       hover=False, text='', command=lambda: LibrarySystem.onBackArrowBtnClicked(1), width=10,
                                        height=10)
             back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
-            #book_cover.configure(url=Book.getImgUrl(books_found[0][6]), text='', cursor="hand2",
-            #                     url_image_size=(300, 300))
+
+            book_borrow_cover = CTkUrlLabel(master=book_frame)
+            book_borrow_title = ctk.CTkLabel(master=book_frame)
+            book_borrow_desc = ctk.CTkLabel(master=book_frame)
+            book_publisher = ctk.CTkLabel(master=book_frame)
+            book_publication_date = ctk.CTkLabel(master=book_frame)
+            book_isbn13 = ctk.CTkLabel(master=book_frame)
+            book_quantity = ctk.CTkLabel(master=book_frame)
+            book_borrow_button = ctk.CTkButton(master=book_frame)
+
+            book_borrow_cover.configure(url=Book.getImgUrl(books_found[idx][6]), text='',
+                                 url_image_size=(300, 300))
+            s = wrap(books_found[idx][5], 100)
+            book_borrow_title.configure(text='Title: ' + books_found[idx][1])
+            book_borrow_desc.configure(text='Book Desc: ' + '\n'.join(s))
+            book_publisher.configure(text='Publisher: ' + books_found[idx][3])
+            book_publication_date.configure(text='Publication Date:' + books_found[idx][4])
+            book_isbn13.configure(text='ISBN-13 Number: ' + books_found[idx][6])
+            book_quantity.configure(text='Number in stock: ' + str(books_found[idx][7]))
+            book_borrow_button.configure(text='Borrow Book', command=lambda:on_borrow_clicked(books_found[idx][1], book_quantity))
+
+            book_borrow_cover.pack(anchor=ctk.CENTER, side=ctk.TOP)
+            book_borrow_title.pack(anchor=ctk.CENTER, side=ctk.TOP)
+            book_borrow_desc.pack(anchor=ctk.CENTER, side=ctk.TOP)
+            book_publisher.pack(anchor=ctk.CENTER, side=ctk.TOP)
+            book_publication_date.pack(anchor=ctk.CENTER, side=ctk.TOP)
+            book_isbn13.pack(anchor=ctk.CENTER, side=ctk.TOP)
+            book_quantity.pack(anchor=ctk.CENTER, side=ctk.TOP)
+            book_borrow_button.pack(anchor=ctk.CENTER, side=ctk.TOP)
+
+        #this handles the actual borrowing logic, checking to see if the current user already has the book
+        #if they do, then prevent them from borrowing again
+        #also see if there is a valid quantity of books, if not, then alert user and prevent them from borrowing
+        def on_borrow_clicked(book_title, book_quantity):
+            #ctkm(title='Enter Something', message='Looks like you forgot to enter in anything',
+            #     icon='warning', option_1='Close')
+            acknowledgement = ctkm(title='Borrow Book', message='Are you sure you want to borrow this book?', icon='check', option_1='No', option_2='Yes')
+            if acknowledgement.get() == 'Yes':
+                with sqlite3.connect('user_accounts.db') as conn:
+                    cursor = conn.cursor()
+                    #sql_query = f"SELECT * FROM book_registery WHERE title LIKE '%{search_text}%' OR authors LIKE '%{search_text}%' OR isbn13 LIKE '%{search_text}%'"
+                    sql_query = f"SELECT books_borrowed FROM user_table WHERE id = ?"
+                    cursor.execute(sql_query, (u_id,))
+                    result = cursor.fetchone()
+                    curr_book = result[0] if result else ""
+
+                    if book_title not in curr_book:
+                        qty = 0
+                        with sqlite3.connect('book_list.db') as conn2:
+                            cursor2 = conn2.cursor()
+                            sql_get_qty = "SELECT quantity FROM book_registery WHERE title = ?"
+                            cursor2.execute(sql_get_qty, (book_title,))
+                            qty = cursor2.fetchone()[0]
+                            print(qty)
+                            sql_query_update_quantity = "UPDATE book_registery SET quantity = quantity-1 WHERE title = ?"
+                            cursor2.execute(sql_query_update_quantity, (book_title,))
+                            book_quantity.configure(text='Number in stock: ' + str(qty-1))
+                        if qty <= 0:
+                            ctkm(title='Not enough books', message='Looks like we dont have any of those books in stock, try again llater',
+                                 icon='warning', option_1='Close')
+                        else:
+                            new_book = f'{curr_book} {book_title}'.strip()
+                            sql_query_update = "UPDATE user_table SET books_borrowed = ? WHERE id = ?"
+                            cursor.execute(sql_query_update, (new_book, u_id))
+                            conn.commit()
+                    else:
+                        ctkm(title='Already Borrowed', message='Looks like you\'re already borrowing this book',
+                             icon='warning', option_1='Close')
 
     #this is a simple method to just ease up the getting of images from images folder
     #could have downloaded all book cover images from google api, might be slightly faster to display image, but i really dont want this to take up that much space

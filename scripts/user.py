@@ -3,11 +3,12 @@ import sqlite3
 from CTkMessagebox import CTkMessagebox as ctkm
 import librarysystem
 class User:
-    def __init__(self, username, password, role, borrowed_books):
+    def __init__(self, username, password, role, borrowed_books, id):
         self.__username = username
         self.__password = self.hashPassword(password)  # Hash the password during initialization
         self.__role = role
         self.__borrowed_books = borrowed_books
+        self__id = id
 
     #hashes the password using sha256 making it more secure
     @staticmethod
@@ -42,6 +43,16 @@ class User:
                     'books_borrowed': result[4]
                 }
                 return user_info
+
+    @staticmethod
+    def get_curr_id(username, password):
+        with sqlite3.connect('user_accounts.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM user_table WHERE username=? AND password=?', (username, User.hashPassword(password)))
+            result = cursor.fetchone()
+            if result: return result[0]
+
+
 
     #kicks the user out of their current frame and boots them back to the log in frame
     @staticmethod
