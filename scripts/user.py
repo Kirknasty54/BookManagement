@@ -3,11 +3,10 @@ import sqlite3
 from CTkMessagebox import CTkMessagebox as ctkm
 import librarysystem
 class User:
-    def __init__(self, username, password, role, borrowed_books, id):
+    def __init__(self, username, password, role, id):
         self.__username = username
         self.__password = self.hashPassword(password)  # Hash the password during initialization
         self.__role = role
-        self.__borrowed_books = borrowed_books
         self__id = id
 
     #hashes the password using sha256 making it more secure
@@ -40,7 +39,6 @@ class User:
                     'username': result[1],
                     'password': result[2],
                     'role': result[3],
-                    'books_borrowed': result[4]
                 }
                 return user_info
 
@@ -107,7 +105,7 @@ class User:
             else:
                 with sqlite3.connect('user_accounts.db') as conn:
                     cursor = conn.cursor()
-                    cursor.execute("insert into user_table(username, password, role, books_borrowed) VALUES(?, ?, 'Member', 'None')", (username, User.hashPassword(password)))
+                    cursor.execute("insert into user_table(username, password, role) VALUES(?, ?, 'Member')", (username, User.hashPassword(password)))
                     conn.commit()
                 ctkm(title='Registration Success', message='Account successfully registered', icon='check', option_1='Close')
         else: ctkm(title='No Entry Found', message='Please enter in a username and password to register an account', icon='warning', option_1='Close')

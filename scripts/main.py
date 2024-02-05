@@ -8,18 +8,23 @@ import requests
 from librarysystem import LibrarySystem
 
 def main():
-    #this kickstarts the whole program
-    LibrarySystem.loginScreen()
-    '''conn = sqlite3.connect('user_accounts.db')
+
+    conn = sqlite3.connect('user_accounts.db')
     cursor = conn.cursor()
     cursor.execute('CREATE TABLE IF NOT EXISTS user_table(id INTEGER PRIMARY KEY AUTOINCREMENT,'
                    'username TEXT NOT NULL UNIQUE, '
                    'password TEXT NOT NULL,'
-                   'role TEXT NOT NULL,'
-                   'books_borrowed TEXT,'
-                   'prev_borrowed TEXT)')
-    conn.commit()'''
+                   'role TEXT NOT NULL)')
+    conn.commit()
+    cursor.execute('CREATE TABLE IF NOT EXISTS book_transaction(user_id INTEGER NOT NULL,'
+                   'book TEXT NOT NULL,'
+                   'state TEXT NOT NULL,'
+                   'FOREIGN KEY (user_id) REFERENCES user_table (id))')
 
+    #this kickstarts the whole program
+    LibrarySystem.loginScreen()
+
+    #"UPDATE user_table SET books_borrowed = ? WHERE id = ?"
     #conn2 = sqlite3.connect('book_list.db')
     #cursor = conn2.cursor()
 
@@ -33,7 +38,8 @@ def main():
                    'publication_date text not null,'
                    'desc text,'
                    'isbn13 text,'
-                   'quantity integer default 10)')'''
+                   'quantity integer default 100)')'''
+
     #i extracted the titles, publisher, publication date, isbn-13, and authors from the csv file, by transferring only the desired columns to a pandas dataset
     #using the extracted isbn 13, i use it to search via the googlebooks api to add a desc to my database for every book
     #data = pd.read_csv('books - books.csv')
