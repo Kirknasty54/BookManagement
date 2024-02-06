@@ -9,17 +9,22 @@ from librarysystem import LibrarySystem
 
 def main():
 
-    conn = sqlite3.connect('user_accounts.db')
-    cursor = conn.cursor()
-    cursor.execute('CREATE TABLE IF NOT EXISTS user_table(id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                   'username TEXT NOT NULL UNIQUE, '
-                   'password TEXT NOT NULL,'
-                   'role TEXT NOT NULL)')
-    conn.commit()
-    cursor.execute('CREATE TABLE IF NOT EXISTS book_transaction(user_id INTEGER NOT NULL,'
-                   'book TEXT NOT NULL,'
-                   'state TEXT NOT NULL,'
-                   'FOREIGN KEY (user_id) REFERENCES user_table (id))')
+
+    with sqlite3.connect('user_accounts.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('CREATE TABLE IF NOT EXISTS user_table(id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                       'username TEXT NOT NULL UNIQUE, '
+                       'password TEXT NOT NULL,'
+                       'role TEXT NOT NULL)')
+        conn.commit()
+        cursor.execute('CREATE TABLE IF NOT EXISTS book_transaction(user_id INTEGER NOT NULL,'
+                       'book TEXT NOT NULL,'
+                       'state TEXT NOT NULL,'
+                       'FOREIGN KEY (user_id) REFERENCES user_table (id))')
+    with sqlite3.connect('book_list.db') as conn:
+        cursor = conn.cursor()
+        sql_query = 'UPDATE book_registery SET quantity = 100'
+        cursor.execute(sql_query)
 
     #this kickstarts the whole program
     LibrarySystem.loginScreen()

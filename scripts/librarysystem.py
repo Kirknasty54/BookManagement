@@ -123,7 +123,7 @@ class LibrarySystem:
             sql_query = "SELECT book from book_transaction where user_id = ? and state = ?"
             cursor.execute(sql_query, (u_id, 'borrowed',))
             results = cursor.fetchall()
-            normalized_results = [result[0].replace(",", "").replace("(", "").replace(")", "").strip("'") for result in results]
+            normalized_results = [result[0].strip("'") for result in results]
             books_to_return.configure(values=normalized_results)
 
         return_btn = ctk.CTkButton(master=return_frame, text='Return', command=lambda: return_book())
@@ -135,7 +135,16 @@ class LibrarySystem:
 
         def return_book():
             selected_return = books_to_return.get()
-            print(selected_return)
+            with(sqlite3.connect('user_accounts.db')) as conn:
+                cursor = conn.cursor()
+                #sql_query_insert = "INSERT INTO book_transaction (user_id, book, state) VALUES (?, ?, ?)"
+                #sql_query_update_quantity = "UPDATE book_registery SET quantity = quantity-1 WHERE title = ?"
+                sql_query_update = "UPDATE book_transaction SET state = 'returned' WHERE book = ? AND user_id = ?"
+                cursor.execute(sql_query_update, (selected_return, u_id))
+                conn.commit()
+                app.update()
+                books_to_return.update()
+
 
     #this will allow users to search the through the database of available books
     #might have a progress bar to represent search progress
@@ -258,11 +267,11 @@ class LibrarySystem:
             if acknowledgement.get() == 'Yes':
                 with sqlite3.connect('user_accounts.db') as conn:
                     cursor = conn.cursor()
-                    sql_query = f"SELECT book FROM book_transaction WHERE user_id = ?"
-                    cursor.execute(sql_query, (u_id,))
+                    sql_query = f"SELECT book FROM book_transaction WHERE user_id = ? and state = ?"
+                    cursor.execute(sql_query, (u_id, 'borrowed',))
                     results = cursor.fetchall()
-                    normalized_results = [result[0].replace(",", "").replace("(", "").replace(")", "").strip("'") for result in results]
-                    if book_title.replace(",", "").replace("(", "").replace(")", "") not in normalized_results:
+                    normalized_results = [result[0].strip("'") for result in results]
+                    if book_title not in normalized_results:
                         qty = 0
                         with sqlite3.connect('book_list.db') as conn2:
                             cursor2 = conn2.cursor()
