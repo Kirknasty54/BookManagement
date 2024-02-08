@@ -1,19 +1,15 @@
-import pickle
-import requests
 from threading import Thread
 import sqlite3
 import webbrowser
-from PIL import Image, ImageTk
+from PIL import Image
 from book import Book
-import user as user
 from tkinter import PhotoImage
-import os
+from os.path import join
 import customtkinter as ctk
 from user import User
 from CTkMessagebox import CTkMessagebox as ctkm
 from urlLabel import CTkUrlLabel
 from textwrap import wrap
-from CTkListbox import *
 
 # set our colors/modes, title of the application and default size on launch
 ctk.set_appearance_mode("Dark")
@@ -22,10 +18,10 @@ app = ctk.CTk()
 app.title('The Library of Kirkandria')
 app.resizable(False, False)
 app.after(0, lambda : app.state('zoomed'))
-icon = PhotoImage(file=os.path.join('..', 'images', 'icon.png'))
+icon = PhotoImage(file=join('..', 'images', 'icon.png'))
 app.wm_iconbitmap()
 app.iconphoto(False, icon)
-u_id = 0
+u_id = -1
 
 #this handles most of the logic of the overall app, split some of the functions to the classes i found appropriate
 class LibrarySystem:
@@ -77,6 +73,11 @@ class LibrarySystem:
         app.bind('<Configure>', onResize)
         app.mainloop()
 
+    # kicks the user out of their current frame and boots them back to the log in frame
+    def logout(screen):
+        screen.destroy()
+        LibrarySystem.loginScreen()
+
     # returns to the appropiate screen based on the case based into the function
     # want to return to search screen if were hitting the back arrow on the book screen, and thenn return to the main menu screen if we press search screen back arrow
     def onBackArrowBtnClicked(case):
@@ -98,7 +99,7 @@ class LibrarySystem:
         label.pack(pady=12, padx=10)
         search_book_btn = ctk.CTkButton(master=main_menu_frame, text='Search for Books', command= lambda : onSearchClicked(), corner_radius=32).pack(pady=12, padx=10)
         return_book_btn = ctk.CTkButton(main_menu_frame, text='Return Books', command= lambda : onReturnClicked(), corner_radius=32).pack(pady=12, padx=10)
-        logout_btn = ctk.CTkButton(main_menu_frame, text='Logout', command= lambda: User.logout(main_menu_frame), corner_radius=32).pack(pady=12, padx=10)
+        logout_btn = ctk.CTkButton(main_menu_frame, text='Logout', command= lambda: LibrarySystem.logout(main_menu_frame),corner_radius=32).pack(pady=12, padx=10)
 
         def onSearchClicked():
             main_menu_frame.destroy()
@@ -133,18 +134,25 @@ class LibrarySystem:
         back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
         return_btn.pack(anchor=ctk.CENTER, side=ctk.TOP)
 
+        #actual return book logic function
+        #updates the book state as returned and updates the quantity of the quantity of book to +1
         def return_book():
-            selected_return = books_to_return.get()
-            with(sqlite3.connect('user_accounts.db')) as conn:
-                cursor = conn.cursor()
-                #sql_query_insert = "INSERT INTO book_transaction (user_id, book, state) VALUES (?, ?, ?)"
-                #sql_query_update_quantity = "UPDATE book_registery SET quantity = quantity-1 WHERE title = ?"
-                sql_query_update = "UPDATE book_transaction SET state = 'returned' WHERE book = ? AND user_id = ?"
-                cursor.execute(sql_query_update, (selected_return, u_id))
-                conn.commit()
-                app.update()
-                books_to_return.update()
-
+            if books_to_return.get() != 'Select a book to return':
+                selected_return = books_to_return.get()
+                with(sqlite3.connect('user_accounts.db')) as conn:
+                    cursor = conn.cursor()
+                    sql_query_update = "UPDATE book_transaction SET state = 'returned' WHERE book = ? AND user_id = ?"
+                    cursor.execute(sql_query_update, (selected_return, u_id))
+                    options = list(books_to_return._values)
+                    options.remove(selected_return)
+                    books_to_return.configure(values=options)
+                    books_to_return.set('Select a book to return')
+                    conn.commit()
+                with(sqlite3.connect('book_list.db')) as conn:
+                    cursor = conn.cursor()
+                    sql_query = "UPDATE book_registery SET quantity = quantity + 1 WHERE title = ?"
+                    cursor.execute(sql_query, (selected_return, ))
+                    conn.commit()
 
     #this will allow users to search the through the database of available books
     #might have a progress bar to represent search progress
@@ -299,5 +307,5 @@ class LibrarySystem:
     #also just like my current method a lot better
     @staticmethod
     def getImg(file):
-        img = os.path.join('..', 'images', fr'{file}')
+        img = join('..', 'images', fr'{file}')
         return img

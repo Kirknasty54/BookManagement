@@ -1,7 +1,6 @@
 from hashlib import sha256
 import sqlite3
 from CTkMessagebox import CTkMessagebox as ctkm
-import librarysystem
 class User:
     def __init__(self, username, password, role, id):
         self.__username = username
@@ -50,14 +49,6 @@ class User:
             result = cursor.fetchone()
             if result: return result[0]
 
-
-
-    #kicks the user out of their current frame and boots them back to the log in frame
-    @staticmethod
-    def logout(screen):
-        screen.destroy()
-        librarysystem.LibrarySystem.loginScreen()
-
     #this is a login check, checks if the username and password have something entered in them, then we search the database for a matching record of username and matching password
     #if one is found, we return 0 so we can use this function for further logic
     #if a record is found with a matching username but mismatching password, then alert the user that it looks like the password was incorrect
@@ -90,6 +81,7 @@ class User:
                      message='Looks like there is no username like that, you should register an account',
                      icon='warning', option_1='Close')
                 return -1
+
     #registers the account based on the username and password entered
     @staticmethod
     def registerUser(username, password):

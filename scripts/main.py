@@ -21,10 +21,6 @@ def main():
                        'book TEXT NOT NULL,'
                        'state TEXT NOT NULL,'
                        'FOREIGN KEY (user_id) REFERENCES user_table (id))')
-    with sqlite3.connect('book_list.db') as conn:
-        cursor = conn.cursor()
-        sql_query = 'UPDATE book_registery SET quantity = 100'
-        cursor.execute(sql_query)
 
     #this kickstarts the whole program
     LibrarySystem.loginScreen()
