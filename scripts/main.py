@@ -9,7 +9,6 @@ from librarysystem import LibrarySystem
 
 def main():
 
-
     with sqlite3.connect('user_accounts.db') as conn:
         cursor = conn.cursor()
         cursor.execute('CREATE TABLE IF NOT EXISTS user_table(id INTEGER PRIMARY KEY AUTOINCREMENT,'

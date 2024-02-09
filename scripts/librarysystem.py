@@ -95,10 +95,11 @@ class LibrarySystem:
     def mainMenuMemberScreen():
         main_menu_frame = ctk.CTkFrame(master=app)
         main_menu_frame.pack(pady=20, padx=60, fill='both', expand=True)
-        label = ctk.CTkLabel(master=main_menu_frame, text='Main Menu\nWelcome Member', font=(None, 35))
+        label = ctk.CTkLabel(main_menu_frame, text='Main Menu\nWelcome Member', font=(None, 35))
         label.pack(pady=12, padx=10)
-        search_book_btn = ctk.CTkButton(master=main_menu_frame, text='Search for Books', command= lambda : onSearchClicked(), corner_radius=32).pack(pady=12, padx=10)
+        search_book_btn = ctk.CTkButton(main_menu_frame, text='Search for Books', command= lambda : onSearchClicked(), corner_radius=32).pack(pady=12, padx=10)
         return_book_btn = ctk.CTkButton(main_menu_frame, text='Return Books', command= lambda : onReturnClicked(), corner_radius=32).pack(pady=12, padx=10)
+        chat_room_btn = ctk.CTkButton(main_menu_frame, text='Chat Room', command= lambda : print('chat room entered'), corner_radius=32).pack(pady=12, padx=10)
         logout_btn = ctk.CTkButton(main_menu_frame, text='Logout', command= lambda: LibrarySystem.logout(main_menu_frame),corner_radius=32).pack(pady=12, padx=10)
 
         def onSearchClicked():
@@ -116,7 +117,6 @@ class LibrarySystem:
         label = ctk.CTkLabel(master=return_frame, text='Return Menu', font=(None, 35))
         back_arrow = ctk.CTkButton(master=return_frame, image=left_img, fg_color='transparent',
                                    hover=False, text='', command=lambda: LibrarySystem.onBackArrowBtnClicked(0), width=10, height=10)
-        label.pack(anchor=ctk.CENTER, side=ctk.TOP)
         books_to_return = ctk.CTkComboBox(master = return_frame, width=400, state='readonly')
         books_to_return.set('Select a book to return')
         with(sqlite3.connect('user_accounts.db')) as conn:
@@ -130,9 +130,10 @@ class LibrarySystem:
         return_btn = ctk.CTkButton(master=return_frame, text='Return', command=lambda: return_book())
 
         return_frame.pack(pady=20, padx=60, fill='both', expand=True)
-        books_to_return.pack(anchor=ctk.CENTER, side=ctk.TOP, pady=0)
         back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
-        return_btn.pack(anchor=ctk.CENTER, side=ctk.TOP)
+        label.pack(anchor=ctk.CENTER, side=ctk.TOP, pady=10)
+        books_to_return.pack(side=ctk.TOP, anchor=ctk.CENTER, pady=10)
+        return_btn.pack(side=ctk.TOP, anchor=ctk.CENTER, pady=10)
 
         #actual return book logic function
         #updates the book state as returned and updates the quantity of the quantity of book to +1
@@ -179,7 +180,7 @@ class LibrarySystem:
         #this text can be authors, title, or the isbn13
         idx=0
         books_found = []
-        def onSearchBtnClicked():
+        def onSearchBtnClicked(event):
             def search():
                 if search_entry.get():
                     search_text = search_entry.get()
@@ -206,6 +207,7 @@ class LibrarySystem:
                           icon='warning', option_1='Close')
             #use threading to help prevent gui lag
             Thread(target=search).start()
+        app.bind('<Return>', onSearchBtnClicked)
 
         #this moves to the right and if we reach the end of the list, simply reset to the beginning to avoid any list range error bs
         def rightBtnClicked(books_found, book_cover, book_desc):
@@ -230,6 +232,7 @@ class LibrarySystem:
         #will let the user know if there are no more copies of the book available
         #if no copies available then prevent user from attempting to borrow book
         def onBookClicked(event):
+            app.unbind('<Return>')
             for child in list(app.children.values()): child.destroy()
             book_frame = ctk.CTkFrame(master=app)
             book_frame.pack(pady=20, padx=60, fill='both', expand=True)
@@ -247,8 +250,7 @@ class LibrarySystem:
             book_quantity = ctk.CTkLabel(master=book_frame)
             book_borrow_button = ctk.CTkButton(master=book_frame)
 
-            book_borrow_cover.configure(url=Book.getImgUrl(books_found[idx][6]), text='',
-                                 url_image_size=(300, 300))
+            book_borrow_cover.configure(url=Book.getImgUrl(books_found[idx][6]), text='', url_image_size=(300, 300))
             s = wrap(books_found[idx][5], 100)
             book_borrow_title.configure(text='Title: ' + books_found[idx][1])
             book_borrow_desc.configure(text='Book Desc: ' + '\n'.join(s))
