@@ -1,5 +1,5 @@
 from hashlib import sha256
-import sqlite3
+from sqlite3 import connect
 from CTkMessagebox import CTkMessagebox as ctkm
 class User:
     def __init__(self, username, password, role, id):
@@ -27,7 +27,7 @@ class User:
 
     @staticmethod
     def getCurrUser(username, password):
-        with sqlite3.connect('user_accounts.db') as conn:
+        with connect('user_accounts.db') as conn:
             cursor = conn.cursor()
             #i dont think i need to worry about sql injections with this implementation, but im not really sure
             cursor.execute('SELECT * FROM user_table WHERE username=? AND password=?',
@@ -43,7 +43,7 @@ class User:
 
     @staticmethod
     def get_curr_id(username, password):
-        with sqlite3.connect('user_accounts.db') as conn:
+        with connect('user_accounts.db') as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT id FROM user_table WHERE username=? AND password=?', (username, User.hashPassword(password)))
             result = cursor.fetchone()
@@ -60,7 +60,7 @@ class User:
         # also we create a result variable that is initalized as empty, if a username is found with matching password, then allow the user to log in
         if username != '' and password != '':
             result = ''
-            with sqlite3.connect('user_accounts.db') as conn:
+            with connect('user_accounts.db') as conn:
                 cursor = conn.cursor()
                 cursor.execute('select password from user_table where username=?', [username])
                 result = cursor.fetchone()
@@ -87,7 +87,7 @@ class User:
     def registerUser(username, password):
         if username != '' and password != '':
             user_exists = True
-            with sqlite3.connect('user_accounts.db') as conn:
+            with connect('user_accounts.db') as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT username FROM user_table WHERE username = ?", (username,))
                 existing = cursor.fetchone()
@@ -95,7 +95,7 @@ class User:
 
             if user_exists: ctkm(title='Registration Error', message='A username by that name already exists, try fixing your password', icon='warning', option_1='Close')
             else:
-                with sqlite3.connect('user_accounts.db') as conn:
+                with connect('user_accounts.db') as conn:
                     cursor = conn.cursor()
                     cursor.execute("insert into user_table(username, password, role) VALUES(?, ?, 'Member')", (username, User.hashPassword(password)))
                     conn.commit()

@@ -1,6 +1,6 @@
 from threading import Thread
-import sqlite3
-import webbrowser
+from sqlite3 import connect
+from webbrowser import open_new
 from PIL import Image
 from book import Book
 from tkinter import PhotoImage
@@ -21,6 +21,8 @@ app.after(0, lambda : app.state('zoomed'))
 icon = PhotoImage(file=join('..', 'images', 'icon.png'))
 app.wm_iconbitmap()
 app.iconphoto(False, icon)
+#set this to -1 to avoid any fail case where the program sticks with 0 as a u_id
+#no clue when this could happen but just in case
 u_id = -1
 
 #this handles most of the logic of the overall app, split some of the functions to the classes i found appropriate
@@ -63,7 +65,7 @@ class LibrarySystem:
 
         login_btn = ctk.CTkButton(master=login_frame, text='Login',command=lambda: onLoginClicked(username_entry.get(), password_entry.get())).place(x=login_frame._current_width/2 -70, y =240)
         register_btn = ctk.CTkButton(master=login_frame, text='Register',command=lambda: User.registerUser(username_entry.get(), password_entry.get())).place(x=login_frame._current_width/2 -70, y =290)
-        gitHub_btn = ctk.CTkButton(master=app, text='GitHub', command=lambda : webbrowser.open_new('https://github.com/Kirknasty54'), width=10, height=10).place(relx=0.0, rely=0.0)
+        gitHub_btn = ctk.CTkButton(master=app, text='GitHub', command=lambda : open_new('https://github.com/Kirknasty54'), width=10, height=10).place(relx=0.0, rely=0.0)
         #websiteBtn = ctk.CTkButton(master=app, text='Website', command=lambda : webbrowser.open_new(''),width=10, height=10).place(relx=0.0, rely=0.1)
 
         #this serves to resize the background image whenever the window size of the app is changed, avoids any jank
@@ -73,13 +75,13 @@ class LibrarySystem:
         app.bind('<Configure>', onResize)
         app.mainloop()
 
-    # kicks the user out of their current frame and boots them back to the log in frame
+    #kicks the user out of their current frame and boots them back to the log in frame
     def logout(screen):
         screen.destroy()
         LibrarySystem.loginScreen()
 
-    # returns to the appropiate screen based on the case based into the function
-    # want to return to search screen if were hitting the back arrow on the book screen, and thenn return to the main menu screen if we press search screen back arrow
+    #returns to the appropiate screen based on the case based into the function
+    #want to return to search screen if were hitting the back arrow on the book screen, and thenn return to the main menu screen if we press search screen back arrow
     def onBackArrowBtnClicked(case):
         match case:
             case 0:
@@ -119,7 +121,7 @@ class LibrarySystem:
                                    hover=False, text='', command=lambda: LibrarySystem.onBackArrowBtnClicked(0), width=10, height=10)
         books_to_return = ctk.CTkComboBox(master = return_frame, width=400, state='readonly')
         books_to_return.set('Select a book to return')
-        with(sqlite3.connect('user_accounts.db')) as conn:
+        with(connect('user_accounts.db')) as conn:
             cursor = conn.cursor()
             sql_query = "SELECT book from book_transaction where user_id = ? and state = ?"
             cursor.execute(sql_query, (u_id, 'borrowed',))
@@ -140,7 +142,7 @@ class LibrarySystem:
         def return_book():
             if books_to_return.get() != 'Select a book to return':
                 selected_return = books_to_return.get()
-                with(sqlite3.connect('user_accounts.db')) as conn:
+                with(connect('user_accounts.db')) as conn:
                     cursor = conn.cursor()
                     sql_query_update = "UPDATE book_transaction SET state = 'returned' WHERE book = ? AND user_id = ?"
                     cursor.execute(sql_query_update, (selected_return, u_id))
@@ -149,7 +151,7 @@ class LibrarySystem:
                     books_to_return.configure(values=options)
                     books_to_return.set('Select a book to return')
                     conn.commit()
-                with(sqlite3.connect('book_list.db')) as conn:
+                with(connect('book_list.db')) as conn:
                     cursor = conn.cursor()
                     sql_query = "UPDATE book_registery SET quantity = quantity + 1 WHERE title = ?"
                     cursor.execute(sql_query, (selected_return, ))
@@ -165,7 +167,7 @@ class LibrarySystem:
         search_entry.place(x=search_frame._current_width/2 +450, y=20)
         search_img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('search_img.png')), size=(25, 25))
         search_btn = ctk.CTkButton(master=search_frame, image=search_img, fg_color="transparent",
-                                   hover=False, text='', command = lambda : onSearchBtnClicked(), width=10, height=20)
+                                   hover=False, text='', command = lambda : onSearchBtnClicked, width=10, height=20)
         app.update()
         search_btn.place(x=search_entry.winfo_x()+142, y=18)
         right_img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('right_arrow.png')), size =(25, 25))
@@ -184,7 +186,7 @@ class LibrarySystem:
             def search():
                 if search_entry.get():
                     search_text = search_entry.get()
-                    with sqlite3.connect('book_list.db') as conn:
+                    with connect('book_list.db') as conn:
                         cursor = conn.cursor()
                         sql_query = f"SELECT * FROM book_registery WHERE title LIKE '%{search_text}%' OR authors LIKE '%{search_text}%' OR isbn13 LIKE '%{search_text}%'"
                         cursor.execute(sql_query)
@@ -208,6 +210,9 @@ class LibrarySystem:
             #use threading to help prevent gui lag
             Thread(target=search).start()
         app.bind('<Return>', onSearchBtnClicked)
+        search_btn.bind("<Button-1>", onSearchBtnClicked)
+        #book_cover.bind("<Button-1>", onBookClicked)
+        #app.bind('')
 
         #this moves to the right and if we reach the end of the list, simply reset to the beginning to avoid any list range error bs
         def rightBtnClicked(books_found, book_cover, book_desc):
@@ -275,7 +280,7 @@ class LibrarySystem:
         def on_borrow_clicked(book_title, book_quantity):
             acknowledgement = ctkm(title='Borrow Book', message='Are you sure you want to borrow this book?', icon='check', option_1='No', option_2='Yes')
             if acknowledgement.get() == 'Yes':
-                with sqlite3.connect('user_accounts.db') as conn:
+                with connect('user_accounts.db') as conn:
                     cursor = conn.cursor()
                     sql_query = f"SELECT book FROM book_transaction WHERE user_id = ? and state = ?"
                     cursor.execute(sql_query, (u_id, 'borrowed',))
@@ -283,7 +288,7 @@ class LibrarySystem:
                     normalized_results = [result[0].strip("'") for result in results]
                     if book_title not in normalized_results:
                         qty = 0
-                        with sqlite3.connect('book_list.db') as conn2:
+                        with connect('book_list.db') as conn2:
                             cursor2 = conn2.cursor()
                             sql_get_qty = "SELECT quantity FROM book_registery WHERE title = ?"
                             cursor2.execute(sql_get_qty, (book_title,))
