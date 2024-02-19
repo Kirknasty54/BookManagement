@@ -8,9 +8,6 @@ class Book:
         self.__author = author
         self.__quantity = quantity
 
-    def updateQuantity(self, change):
-        self.__quantity += change
-
     @staticmethod
     def getImgUrl(isbn):
         api = "https://www.googleapis.com/books/v1/volumes?q=isbn:"

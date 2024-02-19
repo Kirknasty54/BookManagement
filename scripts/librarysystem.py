@@ -12,43 +12,39 @@ from urlLabel import CTkUrlLabel
 from textwrap import wrap
 
 # set our colors/modes, title of the application and default size on launch
-ctk.set_appearance_mode("Dark")
-ctk.set_default_color_theme("dark-blue")
-app = ctk.CTk()
-app.title('The Library of Kirkandria')
-app.resizable(False, False)
-app.after(0, lambda : app.state('zoomed'))
-icon = PhotoImage(file=join('..', 'images', 'icon.png'))
-app.wm_iconbitmap()
-app.iconphoto(False, icon)
 #set this to -1 to avoid any fail case where the program sticks with 0 as a u_id
 #no clue when this could happen but just in case
 u_id = -1
 
 #this handles most of the logic of the overall app, split some of the functions to the classes i found appropriate
-class LibrarySystem:
+class LibrarySystem(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title('The Library of Kirkandria')
+        self.resizable(False, False)
+        ctk.set_appearance_mode('Dark')
+        ctk.set_default_color_theme("dark-blue")
+        self.after(0, lambda  : self.state('zoomed'))
+        icon = PhotoImage(file=join('..', 'images', 'icon.png'))
+        self.wm_iconbitmap()
+        self.iconphoto(False, icon)
+        self.loginScreen()
 
     #this is the first screen that appears upon startup and handles the log in logic
     #depending on the log in entered, the user will either go to the member main menu screen or the librianian main menu screen, both screens have some differing options and some of the same
-    @staticmethod
-    def loginScreen():
-        def onLoginClicked(username, password):
-            can_login = User.loginCheck(username, password)
-            if can_login == 0:
-                app.unbind('<Configure>')
-                for child in list(app.children.values()): child.destroy()
+    def loginScreen(self):
+        def onLoginClicked(self, username, password):
+            if User.loginCheck(username, password)== 0:
+                self.unbind('<Configure>')
+                for child in list(self.children.values()): child.destroy()
                 curr_user = User.getCurrUser(username, password)
 
-                logged_user = User(username=curr_user['username'],
-                                  password=curr_user['password'],
-                                  role=curr_user['role'],
-                                  id =['id'])
-                if(logged_user.get_role() == 'Member'):LibrarySystem.mainMenuMemberScreen()
+                if(curr_user.get_role() == 'Member'):LibrarySystem.mainMenuMemberScreen(self)
                 global u_id
-                u_id = logged_user.get_curr_id(username, password)
+                u_id = curr_user.get_id()
 
         img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('logingimage.jpg')), size=(400, 350))
-        bg_label = ctk.CTkLabel(app, image=img, text='')
+        bg_label = ctk.CTkLabel(self, image=img, text='')
         bg_label.pack()
 
         login_frame = ctk.CTkFrame(master=bg_label, width=320, height=360, corner_radius=20)
@@ -63,62 +59,64 @@ class LibrarySystem:
         forgot_password_link.bind("<Button-1>", )
         forgot_password_link.place(x=login_frame._current_width/2 -50, y =200)'''
 
-        login_btn = ctk.CTkButton(master=login_frame, text='Login',command=lambda: onLoginClicked(username_entry.get(), password_entry.get())).place(x=login_frame._current_width/2 -70, y =240)
+        login_btn = ctk.CTkButton(master=login_frame, text='Login',command=lambda: onLoginClicked(self, username_entry.get(), password_entry.get()))
+        login_btn.place(x=login_frame._current_width / 2 - 70, y=240)
         register_btn = ctk.CTkButton(master=login_frame, text='Register',command=lambda: User.registerUser(username_entry.get(), password_entry.get())).place(x=login_frame._current_width/2 -70, y =290)
-        gitHub_btn = ctk.CTkButton(master=app, text='GitHub', command=lambda : open_new('https://github.com/Kirknasty54'), width=10, height=10).place(relx=0.0, rely=0.0)
+        gitHub_btn = ctk.CTkButton(master=self, text='GitHub', command=lambda : open_new('https://github.com/Kirknasty54'), width=10, height=10).place(relx=0.0, rely=0.0)
         #websiteBtn = ctk.CTkButton(master=app, text='Website', command=lambda : webbrowser.open_new(''),width=10, height=10).place(relx=0.0, rely=0.1)
 
         #this serves to resize the background image whenever the window size of the app is changed, avoids any jank
         def onResize(event):
-            new_size = (app.winfo_width(), app.winfo_height())
+            new_size = (self.winfo_width(), self.winfo_height())
             img.configure(size=new_size)
-        app.bind('<Configure>', onResize)
-        app.mainloop()
+        self.bind('<Configure>', onResize)
+        #self.mainloop()
 
-    #kicks the user out of their current frame and boots them back to the log in frame
-    def logout(screen):
+    # kicks the user out of their current frame and boots them back to the log in frame
+    def logout(self, screen):
         screen.destroy()
-        LibrarySystem.loginScreen()
+        # LibrarySystem.loginScreen()
+        self.loginScreen()
 
     #returns to the appropiate screen based on the case based into the function
     #want to return to search screen if were hitting the back arrow on the book screen, and thenn return to the main menu screen if we press search screen back arrow
-    def onBackArrowBtnClicked(case):
+    def onBackArrowBtnClicked(case, self):
         match case:
             case 0:
-                for child in list(app.children.values()): child.destroy()
-                LibrarySystem.mainMenuMemberScreen()
+                for child in list(self.children.values()): child.destroy()
+                LibrarySystem.mainMenuMemberScreen(self)
             case 1:
-                for child in list(app.children.values()): child.destroy()
-                LibrarySystem.searchScreen()
+                for child in list(self.children.values()): child.destroy()
+                LibrarySystem.searchScreen(self)
 
     #this is the main menu screen for members only, gives them a variety of options like searching for books, borrowing books, returning books, and log out
     #might eventually add a recommendation system based on previously borrowed books
-    @staticmethod
-    def mainMenuMemberScreen():
-        main_menu_frame = ctk.CTkFrame(master=app)
+    #@staticmethod
+    def mainMenuMemberScreen(self):
+        main_menu_frame = ctk.CTkFrame(master=self)
         main_menu_frame.pack(pady=20, padx=60, fill='both', expand=True)
         label = ctk.CTkLabel(main_menu_frame, text='Main Menu\nWelcome Member', font=(None, 35))
         label.pack(pady=12, padx=10)
         search_book_btn = ctk.CTkButton(main_menu_frame, text='Search for Books', command= lambda : onSearchClicked(), corner_radius=32).pack(pady=12, padx=10)
         return_book_btn = ctk.CTkButton(main_menu_frame, text='Return Books', command= lambda : onReturnClicked(), corner_radius=32).pack(pady=12, padx=10)
         chat_room_btn = ctk.CTkButton(main_menu_frame, text='Chat Room', command= lambda : print('chat room entered'), corner_radius=32).pack(pady=12, padx=10)
-        logout_btn = ctk.CTkButton(main_menu_frame, text='Logout', command= lambda: LibrarySystem.logout(main_menu_frame),corner_radius=32).pack(pady=12, padx=10)
+        logout_btn = ctk.CTkButton(main_menu_frame, text='Logout', command= lambda: self.logout(main_menu_frame),corner_radius=32).pack(pady=12, padx=10)
 
         def onSearchClicked():
             main_menu_frame.destroy()
-            LibrarySystem.searchScreen()
+            LibrarySystem.searchScreen(self)
 
         def onReturnClicked():
             main_menu_frame.destroy()
-            LibrarySystem.returnBookScreen()
+            LibrarySystem.returnBookScreen(self)
 
     @staticmethod
-    def returnBookScreen():
-        return_frame = ctk.CTkFrame(master=app)
+    def returnBookScreen(self):
+        return_frame = ctk.CTkFrame(master=self)
         left_img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('left_arrow.png')), size=(25, 25))
         label = ctk.CTkLabel(master=return_frame, text='Return Menu', font=(None, 35))
         back_arrow = ctk.CTkButton(master=return_frame, image=left_img, fg_color='transparent',
-                                   hover=False, text='', command=lambda: LibrarySystem.onBackArrowBtnClicked(0), width=10, height=10)
+                                   hover=False, text='', command=lambda: LibrarySystem.onBackArrowBtnClicked(0, self), width=10, height=10)
         books_to_return = ctk.CTkComboBox(master = return_frame, width=400, state='readonly')
         books_to_return.set('Select a book to return')
         with(connect('user_accounts.db')) as conn:
@@ -158,29 +156,29 @@ class LibrarySystem:
                     conn.commit()
 
     #this will allow users to search the through the database of available books
-    #might have a progress bar to represent search progress
-    @staticmethod
-    def searchScreen():
-        search_frame = ctk.CTkFrame(master=app)
+    def searchScreen(self):
+        search_frame = ctk.CTkFrame(master=self)
         search_frame.pack(pady=20, padx=60, fill='both', expand=True)
-        search_entry = ctk.CTkEntry(master=search_frame, placeholder_text='Enter title, author, or ISBN number to find books', width=280)
-        search_entry.place(x=search_frame._current_width/2 +450, y=20)
+        search_entry = ctk.CTkEntry(master=search_frame,
+                                    placeholder_text='Enter title, author, or ISBN number to find books', width=280)
+        search_entry.place(relx=0.5, rely=0.15,anchor= ctk.CENTER)
         search_img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('search_img.png')), size=(25, 25))
         search_btn = ctk.CTkButton(master=search_frame, image=search_img, fg_color="transparent",
-                                   hover=False, text='', command = lambda : onSearchBtnClicked, width=10, height=20)
-        app.update()
-        search_btn.place(x=search_entry.winfo_x()+142, y=18)
-        right_img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('right_arrow.png')), size =(25, 25))
+                                   hover=False, text='', command=lambda: onSearchBtnClicked, width=10, height=20)
+        self.update()
+        search_btn.place(relx=0.583, rely=0.15, anchor= ctk.CENTER)
+        right_img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('right_arrow.png')), size=(25, 25))
         left_img = ctk.CTkImage(dark_image=Image.open(LibrarySystem.getImg('left_arrow.png')), size=(25, 25))
         book_cover = CTkUrlLabel(master=search_frame)
         book_desc = ctk.CTkLabel(master=search_frame)
         back_arrow = ctk.CTkButton(master=search_frame, image=left_img, fg_color='transparent',
-                                   hover=False, text='', command = lambda : LibrarySystem.onBackArrowBtnClicked(0), width=10, height=10)
+                                   hover=False, text='', command=lambda: LibrarySystem.onBackArrowBtnClicked(0, self),
+                                   width=10, height=10)
         back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
 
         #this searches through the database and 'returns' all titles associated with that piece of text
         #this text can be authors, title, or the isbn13
-        idx=0
+        idx = 0
         books_found = []
         def onSearchBtnClicked(event):
             def search():
@@ -193,26 +191,36 @@ class LibrarySystem:
                         nonlocal books_found
                         books_found = cursor.fetchall()
                         if books_found:
-                            book_cover.configure(url=Book.getImgUrl(books_found[0][6]), text='', cursor="hand2", url_image_size=(300, 300))
-                            book_cover.place(x=search_frame._current_width/2 -150, y=search_frame._current_height/2 -200)
+                            book_cover.configure(url=Book.getImgUrl(books_found[0][6]), text='', cursor="hand2",
+                                                 url_image_size=(300, 300))
+                            book_cover.place(x=search_frame._current_width / 2 - 150,
+                                             y=search_frame._current_height / 2 - 200)
                             book_cover.bind("<Button-1>", onBookClicked)
-                            right_btn = ctk.CTkButton(master=search_frame, image=right_img, command=lambda: rightBtnClicked(books_found, book_cover, book_desc),
-                                                      text='',fg_color="transparent", width=10, height=20).place(x=search_frame._current_width/2 +150, y = search_frame._current_height/2 -60)
-                            left_btn = ctk.CTkButton(master=search_frame, image=left_img, command=lambda: leftBtnClicked(books_found, book_cover, book_desc),
-                                                     text='', fg_color="transparent", width=10, height=20).place(x=search_frame._current_width/2 -190, y=search_frame._current_height/2 -60)
-                            book_desc.configure(text=books_found[0][5][0:50]+'\n'+books_found[0][5][50:100])
-                            book_desc.place(x=search_frame._current_width/2-150, y = search_frame._current_height/2+125)
+                            right_btn = ctk.CTkButton(master=search_frame, image=right_img,
+                                                      command=lambda: rightBtnClicked(books_found, book_cover,
+                                                                                      book_desc),
+                                                      text='', fg_color="transparent", width=10, height=20).place(
+                                x=search_frame._current_width / 2 + 150, y=search_frame._current_height / 2 - 60)
+                            left_btn = ctk.CTkButton(master=search_frame, image=left_img,
+                                                     command=lambda: leftBtnClicked(books_found, book_cover, book_desc),
+                                                     text='', fg_color="transparent", width=10, height=20).place(
+                                x=search_frame._current_width / 2 - 190, y=search_frame._current_height / 2 - 60)
+                            book_desc.configure(text=books_found[0][5][0:50] + '\n' + books_found[0][5][50:100])
+                            book_desc.place(x=search_frame._current_width / 2 - 150,
+                                            y=search_frame._current_height / 2 + 125)
+                        else:
+                            ctkm(title='No Such Book Found',
+                                 message='Looks like we don\'t have any matching books. Try again or let a librarian know.',
+                                 icon='warning', option_1='Close')
+                else:
+                    ctkm(title='Enter Something', message='Looks like you forgot to enter in anything',
+                         icon='warning', option_1='Close')
 
-                        else: ctkm(title='No Such Book Found', message='Looks like we don\'t have any matching books. Try again or let a librarian know.',
-                                icon='warning', option_1='Close')
-                else:ctkm(title='Enter Something', message='Looks like you forgot to enter in anything',
-                          icon='warning', option_1='Close')
-            #use threading to help prevent gui lag
+            # use threading to help prevent gui lag
             Thread(target=search).start()
-        app.bind('<Return>', onSearchBtnClicked)
+        self.bind('<Return>', onSearchBtnClicked)
+        print(type(search_btn))
         search_btn.bind("<Button-1>", onSearchBtnClicked)
-        #book_cover.bind("<Button-1>", onBookClicked)
-        #app.bind('')
 
         #this moves to the right and if we reach the end of the list, simply reset to the beginning to avoid any list range error bs
         def rightBtnClicked(books_found, book_cover, book_desc):
@@ -237,12 +245,12 @@ class LibrarySystem:
         #will let the user know if there are no more copies of the book available
         #if no copies available then prevent user from attempting to borrow book
         def onBookClicked(event):
-            app.unbind('<Return>')
-            for child in list(app.children.values()): child.destroy()
-            book_frame = ctk.CTkFrame(master=app)
+            self.unbind('<Return>')
+            for child in list(self.children.values()): child.destroy()
+            book_frame = ctk.CTkFrame(master=self)
             book_frame.pack(pady=20, padx=60, fill='both', expand=True)
             back_arrow = ctk.CTkButton(master=book_frame, image=left_img, fg_color='transparent',
-                                       hover=False, text='', command=lambda: LibrarySystem.onBackArrowBtnClicked(1), width=10,
+                                       hover=False, text='', command=lambda: LibrarySystem.onBackArrowBtnClicked(1, self), width=10,
                                        height=10)
             back_arrow.pack(side=ctk.TOP, anchor=ctk.NW)
 

@@ -4,6 +4,7 @@ import urllib.request
 import textwrap
 import csv
 import sqlite3
+i
 import requests
 from librarysystem import LibrarySystem
 
@@ -21,8 +22,8 @@ def main():
                        'state TEXT NOT NULL,'
                        'FOREIGN KEY (user_id) REFERENCES user_table (id))')
 
-    #this kickstarts the whole program
-    LibrarySystem.loginScreen()
+    ls = LibrarySystem()
+    ls.mainloop()
 
     #"UPDATE user_table SET books_borrowed = ? WHERE id = ?"
     #conn2 = sqlite3.connect('book_list.db')

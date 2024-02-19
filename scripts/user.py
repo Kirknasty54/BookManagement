@@ -6,25 +6,16 @@ class User:
         self.__username = username
         self.__password = self.hashPassword(password)  # Hash the password during initialization
         self.__role = role
-        self__id = id
+        self.__id = id
 
-    #hashes the password using sha256 making it more secure
-    @staticmethod
-    def hashPassword(password):
-        hashed_password = sha256(password.encode()).hexdigest()
-        return hashed_password
 
     #checks the password entered in through the parameters to see if it returns the same hashed value as the user's password
-    @staticmethod
     def checkPassword(hashed_password, password): return hashed_password == User.hashPassword(password)
 
     #simply returns the role of the user to know if we should create the member main screen or the librianian main screen
     def get_role(self): return self.__role
 
-    #this is a member only screen/function
-    def borrow_book(self):
-        pass
-
+    def get_id(self): return self.__id
     @staticmethod
     def getCurrUser(username, password):
         with connect('user_accounts.db') as conn:
@@ -34,20 +25,14 @@ class User:
                            (username, User.hashPassword(password)))
             result = cursor.fetchone()
             if result:
-                user_info = {
+                currUser = User(result[1], result[2], result[3], result[0])
+                return currUser
+                '''user_info = {
                     'username': result[1],
                     'password': result[2],
                     'role': result[3],
                 }
-                return user_info
-
-    @staticmethod
-    def get_curr_id(username, password):
-        with connect('user_accounts.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT id FROM user_table WHERE username=? AND password=?', (username, User.hashPassword(password)))
-            result = cursor.fetchone()
-            if result: return result[0]
+                return user_info'''
 
     #this is a login check, checks if the username and password have something entered in them, then we search the database for a matching record of username and matching password
     #if one is found, we return 0 so we can use this function for further logic
@@ -101,3 +86,9 @@ class User:
                     conn.commit()
                 ctkm(title='Registration Success', message='Account successfully registered', icon='check', option_1='Close')
         else: ctkm(title='No Entry Found', message='Please enter in a username and password to register an account', icon='warning', option_1='Close')
+
+    # hashes the password using sha256 making it more secure
+    @staticmethod
+    def hashPassword(password):
+        hashed_password = sha256(password.encode()).hexdigest()
+        return hashed_password
