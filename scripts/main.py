@@ -4,7 +4,6 @@ import urllib.request
 import textwrap
 import csv
 import sqlite3
-i
 import requests
 from librarysystem import LibrarySystem
 
